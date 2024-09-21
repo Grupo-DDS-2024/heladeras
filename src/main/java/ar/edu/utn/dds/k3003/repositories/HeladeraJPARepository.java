@@ -32,6 +32,10 @@ public class HeladeraJPARepository {
         this.entityManager = entityManager;
         this.entityManagerFactory = entityManagerFactory;
     }
+
+    public HeladeraJPARepository(EntityManager entityManager){
+        this.entityManager = entityManager;
+    }
     public Heladera save(Heladera heladera) {
         entityManager.persist(heladera);
         return heladera;

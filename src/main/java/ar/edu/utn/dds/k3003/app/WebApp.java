@@ -2,32 +2,54 @@ package ar.edu.utn.dds.k3003.app;
 
 import ar.edu.utn.dds.k3003.clients.ViandasProxy;
 import ar.edu.utn.dds.k3003.controller.*;
+import ar.edu.utn.dds.k3003.facades.dtos.Constants;
 import ar.edu.utn.dds.k3003.repositories.HeladeraJPARepository;
 import ar.edu.utn.dds.k3003.repositories.HeladeraMapper;
 import ar.edu.utn.dds.k3003.repositories.HeladeraRepository;
 import ar.edu.utn.dds.k3003.repositories.TemperaturaMapper;
+import ar.edu.utn.dds.k3003.utils.DataDogsUtils;
+import ar.edu.utn.dds.k3003.utils.MQUtils;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import ar.edu.utn.dds.k3003.facades.dtos.Constants;
 import io.javalin.Javalin;
+import io.javalin.micrometer.MicrometerPlugin;
 
-import javax.persistence.Entity;
-import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.Persistence;
+import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.TimeZone;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class WebApp {
 
-    public static void main(String[] args) {
-        Integer port = Integer.parseInt(
-                System.getProperty("port", "8080"));
+    public static void main(String[] args) throws IOException, TimeoutException {
+        Map<String, String> env = System.getenv();
+        MQUtils mqutils = new MQUtils(
+
+                env.get("QUEUE_HOST"),
+                env.get("QUEUE_USERNAME"),
+                env.get("QUEUE_PASSWORD"),
+                env.get("QUEUE_USERNAME"),
+                env.get("QUEUE_NAME")
+        );
+        mqutils.init();
+        var DDUtils = new DataDogsUtils("Heladeras");
+        var registro = DDUtils.getRegistro();
+
+        // Metricas
+        final var gauge = registro.gauge("dds.unGauge", new AtomicInteger(0));
+
+        // Config
+        final var micrometerPlugin = new MicrometerPlugin(config -> config.registry = registro);
+
+        Integer port = Integer.parseInt(System.getProperty("PORT", "8080"));
         Javalin app = Javalin.create().start(port);
         app.get("/", ctx -> ctx.result("Hola Mundo"));
 
@@ -56,9 +78,9 @@ public class WebApp {
         var agregarHeladeraController = new AgregarHeladeraController(fachadaHeladeras);
         var obtenerHeladeraController = new ObtenerHeladeraController(fachadaHeladeras, entityManagerFactory, heladeraJPARepository);
         var depositarViandaController = new DepositarViandaController(fachadaHeladeras);
-        var listaHeladeraController = new ListaHeladeraController(heladeraRepository, heladeraMapper); // de test nomás. dsp borrarlo! -> y borrar Repo, Mapper, e iniciar solo Fachada() sin params.
+        var listaHeladeraController = new ListaHeladeraController(heladeraJPARepository, heladeraMapper); // de test nomás. dsp borrarlo! -> y borrar Repo, Mapper, e iniciar solo Fachada() sin params.
         var retirarViandaController = new RetirarViandaController(fachadaHeladeras);
-        var registrarTemperaturaController = new RegistrarTemperaturaController(fachadaHeladeras);
+        var registrarTemperaturaController = new RegistrarTemperaturaController(fachadaHeladeras, mqutils);
         var obtenerTemperaturasController = new ObtenerTemperaturasController(fachadaHeladeras);
 
         app.post("/heladeras", agregarHeladeraController::agregar);
@@ -99,7 +121,7 @@ public class WebApp {
                 configOverrides.put(key, value);
             }
         }
-        return Persistence.createEntityManagerFactory("fachada_heladeras", configOverrides);
+        return Persistence.createEntityManagerFactory("defaultdb", configOverrides);
     }
 
 }

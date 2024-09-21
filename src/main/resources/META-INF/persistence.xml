@@ -5,7 +5,7 @@
     http://java.sun.com/xml/ns/persistence/persistence_2_0.xsd"
              version="2.0">
 
-    <persistence-unit name="fachada_heladeras" transaction-type="RESOURCE_LOCAL">
+    <persistence-unit name="defaultdb" transaction-type="RESOURCE_LOCAL">
         <provider>org.hibernate.jpa.HibernatePersistenceProvider</provider>
 
 
@@ -16,6 +16,7 @@
             <property name="hibernate.show_sql" value="true" />
             <property name="hibernate.format_sql" value="true" />
             <property name="use_sql_comments" value="true" />
+            <property name="hibernate.dialect" value="org.hibernate.dialect.PostgreSQL82Dialect"/>
         </properties>
 
     </persistence-unit>
