@@ -36,10 +36,18 @@ public class ViandasProxy implements FachadaViandas {
         return null;
     }
 
+    @SneakyThrows
     @Override
-    public ViandaDTO modificarEstado(String s, EstadoViandaEnum estadoViandaEnum)
-            throws NoSuchElementException {
-        return null;
+    public ViandaDTO modificarEstado(String s, EstadoViandaEnum estadoViandaEnum){
+        Response<ViandaDTO> execute = service.modificarEstado(s,estadoViandaEnum).execute();
+
+            if (execute.isSuccessful()) {
+            return execute.body();
+        }
+            if (execute.code() == HttpStatus.NOT_FOUND.getCode()) {
+            throw new NoSuchElementException("no se encontro la vianda " + s);
+        }
+            throw new RuntimeException("Error conectandose con el componente viandas");
     }
 
     @Override
