@@ -5,6 +5,8 @@ import ar.edu.utn.dds.k3003.facades.FachadaHeladeras;
 import ar.edu.utn.dds.k3003.facades.dtos.RetiroDTO;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.step.StepMeterRegistry;
 
 import javax.persistence.EntityManager;
 import java.util.HashMap;
@@ -13,8 +15,12 @@ import java.util.NoSuchElementException;
 
 public class RetirarViandaController {
     private Fachada fachadaHeladeras; // uso Fachada en vez de FachadaHeladeras para el getentitymanager..
-    public RetirarViandaController(Fachada fachadaHeladeras) {
+    private StepMeterRegistry stepMeterRegistry;
+    private Counter viandasRetiradas;
+    public RetirarViandaController(Fachada fachadaHeladeras, StepMeterRegistry stepMeterRegistry) {
         this.fachadaHeladeras = fachadaHeladeras;
+        this.stepMeterRegistry=stepMeterRegistry;
+        this.viandasRetiradas=stepMeterRegistry.counter("ddsHeladeras.viandasRetiradas");
     }
 
     public void retirarVianda(Context context)  throws BadRequestResponse {
@@ -22,7 +28,7 @@ public class RetirarViandaController {
             RetiroDTO retiroDTO = context.bodyAsClass(RetiroDTO.class);
             this.fachadaHeladeras.retirar(retiroDTO);
             //context.status(200).result("Vianda retirada correctamente.");
-
+            viandasRetiradas.increment();
             Map<String, Object> response = new HashMap<>();
             response.put("Mensaje", "Vianda retirada correctamente");
             response.put("Retiro", retiroDTO);

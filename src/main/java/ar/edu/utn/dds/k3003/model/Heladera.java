@@ -13,7 +13,8 @@ public class Heladera {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Setter @Getter
+    @Setter
+    @Getter
     private Integer id;
 
     //@ElementCollection
@@ -54,7 +55,7 @@ public class Heladera {
 
     }
 
-    public void guardar(String qrVianda){
+    public void guardar(String qrVianda) {
         this.viandas.add(qrVianda);
     }
 

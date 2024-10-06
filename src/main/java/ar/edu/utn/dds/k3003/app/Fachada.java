@@ -90,7 +90,7 @@ public class Fachada implements FachadaHeladeras {
         }
 
         // No funciona, ahora me deja depositar la misma vianda varias veces. Está bien en el componente de viandas?
-        if (viandaDTO.getEstado().equals(EstadoViandaEnum.DEPOSITADA)){
+        if (viandaDTO.getEstado().equals(EstadoViandaEnum.DEPOSITADA)) {
             throw new BadRequestResponse("La vianda ya está depositada en " + viandaDTO.getHeladeraId());
         }
 
@@ -155,6 +155,7 @@ public class Fachada implements FachadaHeladeras {
         em.close();
         return temperaturasHeladera;
     }
+
     @Override
     public void setViandasProxy(FachadaViandas fachadaViandas) {
         this.fachadaViandas = fachadaViandas;
@@ -165,7 +166,7 @@ public class Fachada implements FachadaHeladeras {
         return this.heladeraMapper.map(this.heladeraRepository.findById(heladeraId));
     }
 
-    public EntityManager getEntityManager(){
+    public EntityManager getEntityManager() {
         return this.heladeraRepository.getEntityManager();
     }
 }

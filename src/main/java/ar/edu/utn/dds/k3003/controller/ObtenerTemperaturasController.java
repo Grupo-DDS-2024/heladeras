@@ -12,6 +12,7 @@ import java.util.NoSuchElementException;
 
 public class ObtenerTemperaturasController {
     private Fachada fachadaHeladeras;
+
     public ObtenerTemperaturasController(Fachada fachadaHeladeras) {
         this.fachadaHeladeras = fachadaHeladeras;
     }

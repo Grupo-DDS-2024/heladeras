@@ -15,6 +15,7 @@ public class ObtenerHeladeraController {
     private Fachada fachadaHeladera; // No le puedo poner FachadaHeladeras porque no tiene el buscarXId.
     private EntityManagerFactory entityManagerFactory;
     private HeladeraJPARepository heladeraRepository;
+
     public ObtenerHeladeraController(Fachada fachadaHeladera, EntityManagerFactory entityManagerFactory, HeladeraJPARepository heladeraRepository) {
         super();
         this.fachadaHeladera = fachadaHeladera;

@@ -6,7 +6,9 @@ import ar.edu.utn.dds.k3003.facades.dtos.EstadoViandaEnum;
 import ar.edu.utn.dds.k3003.facades.dtos.ViandaDTO;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.javalin.http.HttpStatus;
+
 import java.util.*;
+
 import lombok.SneakyThrows;
 import retrofit2.Response;
 import retrofit2.Retrofit;
@@ -38,16 +40,16 @@ public class ViandasProxy implements FachadaViandas {
 
     @SneakyThrows
     @Override
-    public ViandaDTO modificarEstado(String s, EstadoViandaEnum estadoViandaEnum){
-        Response<ViandaDTO> execute = service.modificarEstado(s,estadoViandaEnum).execute();
+    public ViandaDTO modificarEstado(String s, EstadoViandaEnum estadoViandaEnum) {
+        Response<ViandaDTO> execute = service.modificarEstado(s, estadoViandaEnum).execute();
 
-            if (execute.isSuccessful()) {
+        if (execute.isSuccessful()) {
             return execute.body();
         }
-            if (execute.code() == HttpStatus.NOT_FOUND.getCode()) {
+        if (execute.code() == HttpStatus.NOT_FOUND.getCode()) {
             throw new NoSuchElementException("no se encontro la vianda " + s);
         }
-            throw new RuntimeException("Error conectandose con el componente viandas");
+        throw new RuntimeException("Error conectandose con el componente viandas");
     }
 
     @Override
@@ -71,7 +73,8 @@ public class ViandasProxy implements FachadaViandas {
     }
 
     @Override
-    public void setHeladerasProxy(FachadaHeladeras fachadaHeladeras) {}
+    public void setHeladerasProxy(FachadaHeladeras fachadaHeladeras) {
+    }
 
     @Override
     public boolean evaluarVencimiento(String s) throws NoSuchElementException {

@@ -15,7 +15,7 @@ public class MQUtils {
     private String virtualHost;
     private String queueName;
 
-    private Connection connection ;
+    private Connection connection;
     private Channel channel;
 
     public MQUtils(String host, String username, String password, String virtualHost, String queueName) {

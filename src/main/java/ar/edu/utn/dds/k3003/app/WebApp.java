@@ -13,8 +13,12 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.rabbitmq.client.Channel;
+import com.rabbitmq.client.Connection;
+import com.rabbitmq.client.ConnectionFactory;
 import io.javalin.Javalin;
 import io.javalin.micrometer.MicrometerPlugin;
+import lombok.Getter;
 
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.Persistence;
@@ -28,8 +32,15 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class WebApp {
+    static EntityManagerFactory entityManagerFactory;
 
     public static void main(String[] args) throws IOException, TimeoutException {
+        HeladeraRepository heladeraRepository = new HeladeraRepository();
+        HeladeraMapper heladeraMapper = new HeladeraMapper();
+        TemperaturaMapper temperaturaMapper = new TemperaturaMapper();
+        HeladeraJPARepository heladeraJPARepository = new HeladeraJPARepository();
+        entityManagerFactory = startEntityManagerFactory();
+        heladeraJPARepository.setEntityManagerFactory(entityManagerFactory);
         Map<String, String> env = System.getenv();
         MQUtils mqutils = new MQUtils(
 
@@ -40,28 +51,36 @@ public class WebApp {
                 env.get("QUEUE_NAME")
         );
         mqutils.init();
+        Map<String, String> envMQ = System.getenv();
+        ConnectionFactory factory = new ConnectionFactory();
+        factory.setHost(envMQ.get("QUEUE_HOST"));
+        factory.setUsername(envMQ.get("QUEUE_USERNAME"));
+        factory.setPassword(envMQ.get("QUEUE_PASSWORD"));
+// En el plan más barato, el VHOST == USER
+        factory.setVirtualHost(envMQ.get("QUEUE_USERNAME"));
+        String queueName = envMQ.get("QUEUE_NAME");
+        Connection connection = factory.newConnection();
+        Channel channel = connection.createChannel();
+
+        HeladerasWorker worker = new HeladerasWorker(channel, queueName, entityManagerFactory);
+        worker.init();
         var DDUtils = new DataDogsUtils("Heladeras");
         var registro = DDUtils.getRegistro();
 
         // Metricas
-        final var gauge = registro.gauge("dds.unGauge", new AtomicInteger(0));
+        final var gauge = registro.gauge("ddsHeladeras.unGauge", new AtomicInteger(0));
 
         // Config
         final var micrometerPlugin = new MicrometerPlugin(config -> config.registry = registro);
 
         Integer port = Integer.parseInt(System.getProperty("PORT", "8080"));
-        Javalin app = Javalin.create().start(port);
+        Javalin app = Javalin.create(config -> {
+            config.registerPlugin(micrometerPlugin);
+        }).start(port);
         app.get("/", ctx -> ctx.result("Hola Mundo"));
 
         // Start Cosas.
-        HeladeraRepository heladeraRepository = new HeladeraRepository();
-        HeladeraMapper heladeraMapper = new HeladeraMapper();
-        TemperaturaMapper temperaturaMapper = new TemperaturaMapper();
 
-
-        HeladeraJPARepository heladeraJPARepository = new HeladeraJPARepository();
-        EntityManagerFactory entityManagerFactory = startEntityManagerFactory();
-        heladeraJPARepository.setEntityManagerFactory(entityManagerFactory);
 
         // Si veo que en ningún controller uso directamente los repo o mapper (el mapper da igual), saco el constructor con todos los parámetros y lo dejo como new Fachada();
         Fachada fachadaHeladeras = new Fachada(heladeraJPARepository, heladeraMapper, temperaturaMapper, entityManagerFactory);
@@ -69,17 +88,14 @@ public class WebApp {
         fachadaHeladeras.setViandasProxy(new ViandasProxy(objectMapper));
 
 
-
-
-
         // End Cosas.
 
         // Controllers.
-        var agregarHeladeraController = new AgregarHeladeraController(fachadaHeladeras);
+        var agregarHeladeraController = new AgregarHeladeraController(fachadaHeladeras, registro);
         var obtenerHeladeraController = new ObtenerHeladeraController(fachadaHeladeras, entityManagerFactory, heladeraJPARepository);
-        var depositarViandaController = new DepositarViandaController(fachadaHeladeras);
+        var depositarViandaController = new DepositarViandaController(fachadaHeladeras, registro);
         var listaHeladeraController = new ListaHeladeraController(heladeraJPARepository, heladeraMapper); // de test nomás. dsp borrarlo! -> y borrar Repo, Mapper, e iniciar solo Fachada() sin params.
-        var retirarViandaController = new RetirarViandaController(fachadaHeladeras);
+        var retirarViandaController = new RetirarViandaController(fachadaHeladeras, registro);
         var registrarTemperaturaController = new RegistrarTemperaturaController(fachadaHeladeras, mqutils);
         var obtenerTemperaturasController = new ObtenerTemperaturasController(fachadaHeladeras);
 
@@ -91,10 +107,12 @@ public class WebApp {
         app.get("/heladeras/{id}/temperaturas", obtenerTemperaturasController::obtenerTemperaturas);
 
 
-
-
         app.get("/listado", listaHeladeraController::listarHeladeras); // de test nomás. dsp borrarlo!
 
+    }
+
+    public static EntityManagerFactory getEntityManagerFactory() {
+        return entityManagerFactory;
     }
 
     public static ObjectMapper createObjectMapper() {            // lo voy a usar dsp para setViandasProxy cdo tenga q usar Proxy y Retrofit creo.
@@ -112,9 +130,9 @@ public class WebApp {
 // https://stackoverflow.com/questions/8836834/read-environment-variables-in-persistence-xml-file
         Map<String, String> env = System.getenv();
         Map<String, Object> configOverrides = new HashMap<String, Object>();
-        String[] keys = new String[] { "javax.persistence.jdbc.url", "javax.persistence.jdbc.user",
+        String[] keys = new String[]{"javax.persistence.jdbc.url", "javax.persistence.jdbc.user",
                 "javax.persistence.jdbc.password", "javax.persistence.jdbc.driver", "hibernate.hbm2ddl.auto",
-                "hibernate.connection.pool_size", "hibernate.show_sql" };
+                "hibernate.connection.pool_size", "hibernate.show_sql"};
         for (String key : keys) {
             if (env.containsKey(key)) {
                 String value = env.get(key);

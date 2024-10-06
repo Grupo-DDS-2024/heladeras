@@ -6,6 +6,8 @@ import ar.edu.utn.dds.k3003.facades.dtos.EstadoViandaEnum;
 import ar.edu.utn.dds.k3003.facades.dtos.ViandaDTO;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.step.StepMeterRegistry;
 
 import javax.persistence.EntityManager;
 import java.util.HashMap;
@@ -14,14 +16,20 @@ import java.util.NoSuchElementException;
 
 public class DepositarViandaController {
     private Fachada fachadaHeladeras;
-    public DepositarViandaController(Fachada fachadaHeladeras) {
+    private StepMeterRegistry stepMeterRegistry;
+    private Counter viandasDepositadas;
+
+    public DepositarViandaController(Fachada fachadaHeladeras, StepMeterRegistry stepMeterRegistry) {
         this.fachadaHeladeras = fachadaHeladeras;
+        this.stepMeterRegistry = stepMeterRegistry;
+        this.viandasDepositadas = stepMeterRegistry.counter("ddsHeladeras.viandasDepositadas");
     }
 
     public void depositarVianda(Context context) throws BadRequestResponse {
         try {
             ViandaDTO viandaDTO = context.bodyAsClass(ViandaDTO.class);
             this.fachadaHeladeras.depositar(viandaDTO.getHeladeraId(), viandaDTO.getCodigoQR());
+            viandasDepositadas.increment();
             Map<String, Object> response = new HashMap<>();
             response.put("Mensaje", "Vianda depositada correctamente");
             response.put("Vianda", viandaDTO);

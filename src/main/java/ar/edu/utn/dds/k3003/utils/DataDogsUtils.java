@@ -32,7 +32,7 @@ public class DataDogsUtils {
 
             @Override
             public String uri() {
-                return "https://api.us5.datadoghq.com";
+                return "https://api.us3.datadoghq.com";
             }
 
             @Override
@@ -41,8 +41,8 @@ public class DataDogsUtils {
             }
         };
         registro = new DatadogMeterRegistry(config, Clock.SYSTEM);
-        registro.config().commonTags("app", appTag );
-        initInfraMonitoring() ;
+        registro.config().commonTags("Heladeras", appTag);
+        initInfraMonitoring();
     }
 
     private void initInfraMonitoring() {

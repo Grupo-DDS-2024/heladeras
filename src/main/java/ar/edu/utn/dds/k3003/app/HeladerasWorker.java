@@ -24,7 +24,26 @@ public class HeladerasWorker extends DefaultConsumer {
         this.entityManagerFactory = entityManagerFactory;
     }
 
-    private void init() throws IOException {
+    public static void main(String[] args) throws Exception {
+// Establecer la conexión con CloudAMQP
+        Map<String, String> envMQ = System.getenv();
+        ConnectionFactory factory = new ConnectionFactory();
+        factory.setHost(envMQ.get("QUEUE_HOST"));
+        factory.setUsername(envMQ.get("QUEUE_USERNAME"));
+        factory.setPassword(envMQ.get("QUEUE_PASSWORD"));
+// En el plan más barato, el VHOST == USER
+        factory.setVirtualHost(envMQ.get("QUEUE_USERNAME"));
+        String queueName = envMQ.get("QUEUE_NAME");
+        Connection connection = factory.newConnection();
+        Channel channel = connection.createChannel();
+
+        EntityManagerFactory entityManagerFactory2 = WebApp.startEntityManagerFactory();
+
+        HeladerasWorker worker = new HeladerasWorker(channel, queueName, entityManagerFactory2);
+        worker.init();
+    }
+
+    public void init() throws IOException {
 // Declarar la cola desde la cual consumir mensajes
         this.getChannel().queueDeclare(this.queueName, false, false, false, null);
 // Consumir mensajes de la cola
@@ -37,23 +56,25 @@ public class HeladerasWorker extends DefaultConsumer {
 // Confirmar la recepción del mensaje a la mensajeria
         this.getChannel().basicAck(envelope.getDeliveryTag(), false);
         String analisisId = new String(body, "UTF-8");
-        String temp = analisisId.substring(analisisId.indexOf("TemperaturaDTO(")+"TemperaturaDTO(".length(),analisisId.length()-2);
+        String temp = analisisId.substring(analisisId.indexOf("TemperaturaDTO(") + "TemperaturaDTO(".length(), analisisId.length() - 2);
         String[] campos = temp.split(", ");
         int tempe = 0;
         int heladeriaId = 400;
         LocalDateTime fecha = null;
-        for(String campo: campos){
-            if(campo.startsWith("temperatura=")){
+        for (String campo : campos) {
+            if (campo.startsWith("temperatura=")) {
                 tempe = Integer.parseInt(campo.split("=")[1]);
-            }if(campo.startsWith("heladeraId=")){
+            }
+            if (campo.startsWith("heladeraId=")) {
                 heladeriaId = Integer.parseInt(campo.split("=")[1]);
-            }if(campo.startsWith("fechaMedicion=")){
+            }
+            if (campo.startsWith("fechaMedicion=")) {
                 fecha = LocalDateTime.parse(campo.split("=")[1]);
             }
         }
         System.out.println("id");
         System.out.println(heladeriaId);
-        Temperatura temperatura = new Temperatura(tempe,heladeriaId,fecha);
+        Temperatura temperatura = new Temperatura(tempe, heladeriaId, fecha);
         EntityManager entityManager = entityManagerFactory.createEntityManager();
         entityManager.getTransaction().begin();
         HeladeraJPARepository repositorio = new HeladeraJPARepository(entityManager);
@@ -65,24 +86,6 @@ public class HeladerasWorker extends DefaultConsumer {
 
     }
 
-    public static void main(String[] args) throws Exception {
-// Establecer la conexión con CloudAMQP
-        Map<String, String> env = System.getenv();
-        ConnectionFactory factory = new ConnectionFactory();
-        factory.setHost(env.get("QUEUE_HOST"));
-        factory.setUsername(env.get("QUEUE_USERNAME"));
-        factory.setPassword(env.get("QUEUE_PASSWORD"));
-// En el plan más barato, el VHOST == USER
-        factory.setVirtualHost(env.get("QUEUE_USERNAME"));
-        String queueName = env.get("QUEUE_NAME");
-        Connection connection = factory.newConnection();
-        Channel channel = connection.createChannel();
-
-        EntityManagerFactory entityManagerFactory =  WebApp.startEntityManagerFactory();
-
-        HeladerasWorker worker = new HeladerasWorker(channel,queueName, entityManagerFactory);
-        worker.init();
-    }
 
 }
 

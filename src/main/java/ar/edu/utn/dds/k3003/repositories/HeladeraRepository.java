@@ -2,6 +2,7 @@ package ar.edu.utn.dds.k3003.repositories;
 
 import ar.edu.utn.dds.k3003.model.Heladera;
 import lombok.Getter;
+
 import java.util.*;
 
 
@@ -13,9 +14,11 @@ public class HeladeraRepository {
     private Collection<Integer> idsHeladeras;
 
     private static Integer secuencia = 0;
+
     private Integer nextId() {
         secuencia = secuencia + 1;
-        return secuencia ; }
+        return secuencia;
+    }
 
     public HeladeraRepository() {
         this.heladeras = new ArrayList<>();
@@ -23,8 +26,8 @@ public class HeladeraRepository {
     }
 
     public Heladera save(Heladera heladera) {
-        if (!this.existeLaHeladera(heladera.getId())){
-            if (heladera.getId() == null){
+        if (!this.existeLaHeladera(heladera.getId())) {
+            if (heladera.getId() == null) {
                 heladera.setId(nextId());
             }
             this.heladeras.add(heladera);

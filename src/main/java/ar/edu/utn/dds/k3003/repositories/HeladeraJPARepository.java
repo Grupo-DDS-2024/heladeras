@@ -15,7 +15,8 @@ import java.util.*;
 public class HeladeraJPARepository {
 
 
-    @Getter @Setter
+    @Getter
+    @Setter
     private EntityManager entityManager;
     @Setter
     private EntityManagerFactory entityManagerFactory;
@@ -33,9 +34,10 @@ public class HeladeraJPARepository {
         this.entityManagerFactory = entityManagerFactory;
     }
 
-    public HeladeraJPARepository(EntityManager entityManager){
+    public HeladeraJPARepository(EntityManager entityManager) {
         this.entityManager = entityManager;
     }
+
     public Heladera save(Heladera heladera) {
         entityManager.persist(heladera);
         return heladera;
@@ -48,7 +50,7 @@ public class HeladeraJPARepository {
         }
         return heladera;
     }
-    
+
     public Collection<Heladera> all() {
         CriteriaBuilder criteriaBuilder = entityManager.getCriteriaBuilder();
         CriteriaQuery<Heladera> criteriaQuery = criteriaBuilder.createQuery(Heladera.class);
@@ -56,5 +58,5 @@ public class HeladeraJPARepository {
         criteriaQuery.select(root);
         return entityManager.createQuery(criteriaQuery).getResultList();
     }
-    }
+}
 

@@ -14,9 +14,10 @@ import java.util.Map;
 public class RegistrarTemperaturaController {
     private Fachada fachadaHeladeras;
     private MQUtils mqUtils;
-    public RegistrarTemperaturaController(Fachada fachadaHeladeras,MQUtils mqUtils) {
+
+    public RegistrarTemperaturaController(Fachada fachadaHeladeras, MQUtils mqUtils) {
         this.fachadaHeladeras = fachadaHeladeras;
-        this.mqUtils=mqUtils;
+        this.mqUtils = mqUtils;
     }
 
     public void registrarTemperatura(Context context) {
