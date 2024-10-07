@@ -13,4 +13,6 @@ public interface ViandasRetrofitClient {
     @PATCH("viandas/{qr}/estado")
     Call<ViandaDTO> modificarEstado(@Path("qr") String qr, @Body EstadoViandaEnum status);
 
+    @PATCH("viandas/{qr}")
+    Call<ViandaDTO> modificarHeladera(@Path("qr") String qr, @Body int heladeraDestino);
 }

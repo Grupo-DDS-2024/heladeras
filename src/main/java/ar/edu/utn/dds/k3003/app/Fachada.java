@@ -96,6 +96,7 @@ public class Fachada implements FachadaHeladeras {
 
 
         this.fachadaViandas.modificarEstado(viandaDTO.getCodigoQR(), EstadoViandaEnum.DEPOSITADA);
+        this.fachadaViandas.modificarHeladera(viandaDTO.getCodigoQR(),heladeraId);
 
         heladera.guardar(qrVianda);
         em.persist(heladera);

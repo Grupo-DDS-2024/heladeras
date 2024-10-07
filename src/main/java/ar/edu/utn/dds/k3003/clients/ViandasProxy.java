@@ -81,8 +81,17 @@ public class ViandasProxy implements FachadaViandas {
         return false;
     }
 
+    @SneakyThrows
     @Override
     public ViandaDTO modificarHeladera(String s, int i) {
-        return null;
+        Response<ViandaDTO> execute = service.modificarHeladera(s, i).execute();
+
+        if (execute.isSuccessful()) {
+            return execute.body();
+        }
+        if (execute.code() == HttpStatus.NOT_FOUND.getCode()) {
+            throw new NoSuchElementException("no se encontro la vianda " + s);
+        }
+        throw new RuntimeException("Error conectandose con el componente viandas");
     }
 }
