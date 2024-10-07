@@ -51,7 +51,7 @@ public class HeladeraJPARepository {
         return heladera;
     }
 
-    public Collection<Heladera> all() {
+    public List<Heladera> all() {
         CriteriaBuilder criteriaBuilder = entityManager.getCriteriaBuilder();
         CriteriaQuery<Heladera> criteriaQuery = criteriaBuilder.createQuery(Heladera.class);
         Root<Heladera> root = criteriaQuery.from(Heladera.class);

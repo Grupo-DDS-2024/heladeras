@@ -1,5 +1,6 @@
 package ar.edu.utn.dds.k3003.controller;
 
+import ar.edu.utn.dds.k3003.app.Fachada;
 import ar.edu.utn.dds.k3003.facades.dtos.HeladeraDTO;
 import ar.edu.utn.dds.k3003.repositories.HeladeraJPARepository;
 import ar.edu.utn.dds.k3003.repositories.HeladeraMapper;
@@ -10,19 +11,17 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class ListaHeladeraController {
-    HeladeraJPARepository heladeraJPARepository;
+    Fachada fachada;
     HeladeraMapper heladeraMapper;
 
-    public ListaHeladeraController(HeladeraJPARepository heladeraJPARepository, HeladeraMapper heladeraMapper) {
+    public ListaHeladeraController(Fachada fachada, HeladeraMapper heladeraMapper) {
         super();
-        this.heladeraJPARepository = heladeraJPARepository;
+        this.fachada = fachada;
         this.heladeraMapper = heladeraMapper;
     }
 
     public void listarHeladeras(Context context) throws Exception {
         //context.result(mapper.map(heladeraRepository.getHeladeras().stream().toList().get(2)).toString());
-        List<HeladeraDTO> heladeraDTOS = new ArrayList<>();
-        heladeraJPARepository.all().stream().forEach(heladera -> heladeraDTOS.add(heladeraMapper.map(heladera)));
-        context.json(heladeraDTOS);
+        context.json(fachada.all());
     }
 }

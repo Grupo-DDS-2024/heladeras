@@ -157,6 +157,16 @@ public class Fachada implements FachadaHeladeras {
         return temperaturasHeladera;
     }
 
+    public Collection<HeladeraDTO> all(){
+        EntityManager em = this.entityManagerFactory.createEntityManager();
+        heladeraRepository.setEntityManager(em);
+        em.getTransaction().begin();
+        List<HeladeraDTO> heladeras = heladeraRepository.all().stream().map(heladeraMapper::map).toList();
+        em.getTransaction().commit();
+        em.close();
+        return heladeras;
+    }
+
     @Override
     public void setViandasProxy(FachadaViandas fachadaViandas) {
         this.fachadaViandas = fachadaViandas;

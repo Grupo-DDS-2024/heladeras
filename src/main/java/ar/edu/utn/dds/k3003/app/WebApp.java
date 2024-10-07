@@ -94,7 +94,7 @@ public class WebApp {
         var agregarHeladeraController = new AgregarHeladeraController(fachadaHeladeras, registro);
         var obtenerHeladeraController = new ObtenerHeladeraController(fachadaHeladeras, entityManagerFactory, heladeraJPARepository);
         var depositarViandaController = new DepositarViandaController(fachadaHeladeras, registro);
-        var listaHeladeraController = new ListaHeladeraController(heladeraJPARepository, heladeraMapper); // de test nomás. dsp borrarlo! -> y borrar Repo, Mapper, e iniciar solo Fachada() sin params.
+        var listaHeladeraController = new ListaHeladeraController(fachadaHeladeras, heladeraMapper); // de test nomás. dsp borrarlo! -> y borrar Repo, Mapper, e iniciar solo Fachada() sin params.
         var retirarViandaController = new RetirarViandaController(fachadaHeladeras, registro);
         var registrarTemperaturaController = new RegistrarTemperaturaController(fachadaHeladeras, mqutils);
         var obtenerTemperaturasController = new ObtenerTemperaturasController(fachadaHeladeras);
