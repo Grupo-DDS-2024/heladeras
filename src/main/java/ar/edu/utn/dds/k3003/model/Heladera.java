@@ -34,6 +34,11 @@ public class Heladera {
     @Getter
     private List<Temperatura> temperaturas;
 
+    @Transient
+    @Getter
+    @Setter
+    private List<ColaboradoresSuscritos> colaboradoresSuscritos = new ArrayList<>();
+
     public Heladera() {
         super();
     }

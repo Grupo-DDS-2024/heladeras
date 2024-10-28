@@ -3,6 +3,7 @@ package ar.edu.utn.dds.k3003.app;
 import ar.edu.utn.dds.k3003.facades.FachadaHeladeras;
 import ar.edu.utn.dds.k3003.facades.FachadaViandas;
 import ar.edu.utn.dds.k3003.facades.dtos.*;
+import ar.edu.utn.dds.k3003.model.ColaboradoresSuscritos;
 import ar.edu.utn.dds.k3003.model.Heladera;
 import ar.edu.utn.dds.k3003.model.Temperatura;
 import ar.edu.utn.dds.k3003.repositories.HeladeraJPARepository;
@@ -172,6 +173,16 @@ public class Fachada implements FachadaHeladeras {
         this.fachadaViandas = fachadaViandas;
 
     }
+
+    public void agregarSuscriptor(Long colaborador_id, Integer heladera_id, int cantMinima, int viandasDisponibles, boolean notificarDesperfecto){
+
+        Heladera heladera = this.heladeraRepository.findById(heladera_id);
+        ColaboradoresSuscritos colaborador = new ColaboradoresSuscritos(colaborador_id,heladera,cantMinima,viandasDisponibles,notificarDesperfecto);
+        heladera.getColaboradoresSuscritos().add(colaborador);
+
+    }
+
+    
 
     public HeladeraDTO buscarXId(Integer heladeraId) throws NoSuchElementException {
         return this.heladeraMapper.map(this.heladeraRepository.findById(heladeraId));

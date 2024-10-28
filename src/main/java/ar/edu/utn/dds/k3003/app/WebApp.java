@@ -18,7 +18,6 @@ import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 import io.javalin.Javalin;
 import io.javalin.micrometer.MicrometerPlugin;
-import lombok.Getter;
 
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.Persistence;
@@ -61,9 +60,27 @@ public class WebApp {
         String queueName = envMQ.get("QUEUE_NAME");
         Connection connection = factory.newConnection();
         Channel channel = connection.createChannel();
-
-        HeladerasWorker worker = new HeladerasWorker(channel, queueName, entityManagerFactory);
+        TemperaturasWorker worker = new TemperaturasWorker(channel, queueName, entityManagerFactory);
         worker.init();
+
+        MQUtils mqUtilsNotificaciones = new MQUtils(
+
+                env.get("NOTIFICACIONES_HOST"),
+                env.get("NOTIFICACIONES_USERNAME"),
+                env.get("NOTIFICACIONES_PASSWORD"),
+                env.get("NOTIFICACIONES_USERNAME"),
+                env.get("NOTIFICACIONES_NAME")
+        );
+        mqUtilsNotificaciones.init();
+
+
+
+
+
+
+
+
+
         var DDUtils = new DataDogsUtils("Heladeras");
         var registro = DDUtils.getRegistro();
 

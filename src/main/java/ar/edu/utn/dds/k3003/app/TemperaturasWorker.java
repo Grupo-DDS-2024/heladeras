@@ -1,10 +1,8 @@
 package ar.edu.utn.dds.k3003.app;
 
-import ar.edu.utn.dds.k3003.facades.dtos.TemperaturaDTO;
 import ar.edu.utn.dds.k3003.model.Heladera;
 import ar.edu.utn.dds.k3003.model.Temperatura;
 import ar.edu.utn.dds.k3003.repositories.HeladeraJPARepository;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rabbitmq.client.*;
 
 import javax.persistence.EntityManager;
@@ -13,12 +11,12 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.Map;
 
-public class HeladerasWorker extends DefaultConsumer {
+public class TemperaturasWorker extends DefaultConsumer {
 
     private String queueName;
     private EntityManagerFactory entityManagerFactory;
 
-    protected HeladerasWorker(Channel channel, String queueName, EntityManagerFactory entityManagerFactory) {
+    protected TemperaturasWorker(Channel channel, String queueName, EntityManagerFactory entityManagerFactory) {
         super(channel);
         this.queueName = queueName;
         this.entityManagerFactory = entityManagerFactory;
@@ -39,7 +37,7 @@ public class HeladerasWorker extends DefaultConsumer {
 
         EntityManagerFactory entityManagerFactory2 = WebApp.startEntityManagerFactory();
 
-        HeladerasWorker worker = new HeladerasWorker(channel, queueName, entityManagerFactory2);
+        TemperaturasWorker worker = new TemperaturasWorker(channel, queueName, entityManagerFactory2);
         worker.init();
     }
 
