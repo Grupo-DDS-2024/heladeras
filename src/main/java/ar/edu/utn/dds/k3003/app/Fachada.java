@@ -6,10 +6,8 @@ import ar.edu.utn.dds.k3003.facades.dtos.*;
 import ar.edu.utn.dds.k3003.model.ColaboradoresSuscritos;
 import ar.edu.utn.dds.k3003.model.Heladera;
 import ar.edu.utn.dds.k3003.model.Temperatura;
-import ar.edu.utn.dds.k3003.repositories.HeladeraJPARepository;
-import ar.edu.utn.dds.k3003.repositories.HeladeraMapper;
-import ar.edu.utn.dds.k3003.repositories.HeladeraRepository;
-import ar.edu.utn.dds.k3003.repositories.TemperaturaMapper;
+import ar.edu.utn.dds.k3003.repositories.*;
+import ar.edu.utn.dds.k3003.utils.MQUtils;
 import com.sun.net.httpserver.HttpsServer;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.NotFoundResponse;
@@ -20,11 +18,13 @@ import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.Persistence;
 import javax.transaction.Transactional;
+import java.io.IOException;
 import java.util.*;
 
 public class Fachada implements FachadaHeladeras {
 
     private HeladeraJPARepository heladeraRepository;
+    private SuscripcionesRepository suscripcionesRepository;
 
     @Getter
     private EntityManagerFactory entityManagerFactory;
@@ -36,6 +36,7 @@ public class Fachada implements FachadaHeladeras {
     public Fachada() {
         this.entityManagerFactory = Persistence.createEntityManagerFactory("fachada_heladeras");
         this.heladeraRepository = new HeladeraJPARepository(entityManagerFactory.createEntityManager(), entityManagerFactory);
+        this.suscripcionesRepository = new SuscripcionesRepository(entityManagerFactory);
         this.heladeraMapper = new HeladeraMapper();
         this.temperaturaMapper = new TemperaturaMapper();
 
@@ -47,6 +48,7 @@ public class Fachada implements FachadaHeladeras {
         heladeraRepository.setEntityManager(entityManagerFactory.createEntityManager());
         this.heladeraMapper = heladeraMapper;
         this.temperaturaMapper = temperaturaMapper;
+        this.suscripcionesRepository = new SuscripcionesRepository(entityManagerFactory);
     }
 
     public Fachada(HeladeraJPARepository heladeraRepository, HeladeraMapper heladeraMapper, TemperaturaMapper temperaturaMapper, EntityManagerFactory entityManagerFactory) {
@@ -56,13 +58,14 @@ public class Fachada implements FachadaHeladeras {
         heladeraRepository.setEntityManager(entityManagerFactory.createEntityManager());
         this.heladeraMapper = heladeraMapper;
         this.temperaturaMapper = temperaturaMapper;
+        this.suscripcionesRepository = new SuscripcionesRepository(entityManagerFactory);
     }
 
 
     @Override
     public HeladeraDTO agregar(HeladeraDTO heladeraDTO) {
 
-        Heladera heladera = new Heladera(heladeraDTO.getNombre());
+        Heladera heladera = new Heladera(heladeraDTO.getNombre(), heladeraDTO.getCantidadDeViandas());
         EntityManager em = this.entityManagerFactory.createEntityManager();
         this.heladeraRepository.setEntityManager(em);
         em.getTransaction().begin();
@@ -179,8 +182,49 @@ public class Fachada implements FachadaHeladeras {
         Heladera heladera = this.heladeraRepository.findById(heladera_id);
         ColaboradoresSuscritos colaborador = new ColaboradoresSuscritos(colaborador_id,heladera,cantMinima,viandasDisponibles,notificarDesperfecto);
         heladera.getColaboradoresSuscritos().add(colaborador);
+        suscripcionesRepository.save(colaborador);
 
     }
+
+
+    public void notificarQuedanNViandas(int heladera_id, int cantViandas, MQUtils queue){
+        Heladera heladera = this.heladeraRepository.findById(heladera_id);
+        List<ColaboradoresSuscritos> suscriptores = heladera.getColaboradoresSuscritos();
+        suscriptores.forEach( s -> {
+            if(s.getCantMinima() <= cantViandas){
+                Map<String, Object> response = new HashMap<>();
+                response.put("colaborador_id:",s.getColaborador_id());
+                response.put("heladera_id:",heladera_id);
+                response.put("tipo:",0);
+                try {
+                    queue.publish(response.toString());
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+                }
+        );
+
+    }
+
+    public void notificarFaltanNViandas(int heladera_id, int viandasFaltantes, MQUtils queue){
+        Heladera heladera = this.heladeraRepository.findById(heladera_id);
+        List<ColaboradoresSuscritos> suscriptores = heladera.getColaboradoresSuscritos();
+        suscriptores.forEach(s -> {
+            if(s.getViandasDisponibles() <= viandasFaltantes){
+                Map<String, Object> response = new HashMap<>();
+                response.put("colaborador_id:",s.getColaborador_id());
+                response.put("heladera_id:",heladera_id);
+                response.put("tipo:",1);
+                try {
+                    queue.publish(response.toString());
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        });
+    }
+
 
     
 

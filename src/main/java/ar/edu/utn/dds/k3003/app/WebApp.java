@@ -112,9 +112,10 @@ public class WebApp {
         var obtenerHeladeraController = new ObtenerHeladeraController(fachadaHeladeras, entityManagerFactory, heladeraJPARepository);
         var depositarViandaController = new DepositarViandaController(fachadaHeladeras, registro);
         var listaHeladeraController = new ListaHeladeraController(fachadaHeladeras, heladeraMapper); // de test nomás. dsp borrarlo! -> y borrar Repo, Mapper, e iniciar solo Fachada() sin params.
-        var retirarViandaController = new RetirarViandaController(fachadaHeladeras, registro);
+        var retirarViandaController = new RetirarViandaController(fachadaHeladeras, registro, mqUtilsNotificaciones);
         var registrarTemperaturaController = new RegistrarTemperaturaController(fachadaHeladeras, mqutils);
         var obtenerTemperaturasController = new ObtenerTemperaturasController(fachadaHeladeras);
+        var agregarSuscriptorController = new AgregarSuscriptorController(fachadaHeladeras);
 
         app.post("/heladeras", agregarHeladeraController::agregar);
         app.get("/heladeras/{id}", obtenerHeladeraController::obtenerHeladera);
@@ -123,8 +124,10 @@ public class WebApp {
         app.post("/temperaturas", registrarTemperaturaController::registrarTemperatura);
         app.get("/heladeras/{id}/temperaturas", obtenerTemperaturasController::obtenerTemperaturas);
 
+        //agregarSuscriptor(Long colaborador_id, Integer heladera_id, int cantMinima, int viandasDisponibles, boolean notificarDesperfecto){
+        app.post("/heladeras/suscripciones", agregarSuscriptorController::agregarSuscriptor);
 
-        app.get("/listado", listaHeladeraController::listarHeladeras); // de test nomás. dsp borrarlo!
+        app.get("/listado", listaHeladeraController::listarHeladeras); // de test nomás. dsp borrarlo
 
     }
 

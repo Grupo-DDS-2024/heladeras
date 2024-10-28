@@ -25,20 +25,17 @@ public class ObtenerHeladeraController {
 
 
     public void obtenerHeladera(Context context) throws NotFoundResponse {
-        EntityManager em = this.entityManagerFactory.createEntityManager(); // esto está raro creado acá, debería estar en fachada, y dsp hacer un get
-        this.heladeraRepository.setEntityManager(em);
-        em.getTransaction().begin();
+        //EntityManager em = this.entityManagerFactory.createEntityManager(); // esto está raro creado acá, debería estar en fachada, y dsp hacer un get
+        //this.heladeraRepository.setEntityManager(em);
+        //em.getTransaction().begin();
         try {
 
 
             HeladeraDTO heladeraDTO = this.fachadaHeladera.buscarXId((Integer.parseInt(context.pathParam("id"))));
-            em.getTransaction().commit();
-            em.close();
-            context.status(200).json(heladeraDTO);
-            //context.status(200).result("Heladera obtenida correctamente.");
+
+            context.status(200).json(heladeraDTO); // Falta agregar la cantidad de viandas depositadas actualmente
+
         } catch (NoSuchElementException e) {
-            em.getTransaction().commit();
-            em.close();
             throw new NotFoundResponse("Heladera no encontrada.");
         }
     }

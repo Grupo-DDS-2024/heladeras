@@ -14,7 +14,6 @@ import java.util.*;
 
 public class HeladeraJPARepository {
 
-
     @Getter
     @Setter
     private EntityManager entityManager;
@@ -44,7 +43,12 @@ public class HeladeraJPARepository {
     }
 
     public Heladera findById(Integer id) {
+        EntityManager em = this.entityManagerFactory.createEntityManager(); // esto está raro creado acá, debería estar en fachada, y dsp hacer un get
+        this.entityManager = em;
+        em.getTransaction().begin();
         Heladera heladera = this.entityManager.find(Heladera.class, id);
+        em.getTransaction().commit();
+        em.close();
         if (heladera == null) {
             throw new NoSuchElementException();
         }

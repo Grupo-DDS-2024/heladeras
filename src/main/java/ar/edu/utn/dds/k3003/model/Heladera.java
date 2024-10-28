@@ -20,7 +20,7 @@ public class Heladera {
     //@ElementCollection
     //@CollectionTable(name = "qr_heladera", joinColumns = @JoinColumn(name = "heladera_id"))
     //@Column(name = "qr")
-    @ElementCollection
+    @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "heladera_viandas", joinColumns = @JoinColumn(name = "heladera_id"))
     @Column(name = "vianda")
     private Collection<String> viandas;
@@ -39,6 +39,10 @@ public class Heladera {
     @Setter
     private List<ColaboradoresSuscritos> colaboradoresSuscritos = new ArrayList<>();
 
+    @Column
+    @Getter
+    private Integer cantidadDeViandas;
+
     public Heladera() {
         super();
     }
@@ -52,11 +56,12 @@ public class Heladera {
 
     }
 
-    public Heladera(String nombre) {
+    public Heladera(String nombre, Integer cantidadDeViandas) {
         super();
         this.nombre = nombre;
         this.viandas = new ArrayList<>();
         this.temperaturas = new LinkedList<>();
+        this.cantidadDeViandas = cantidadDeViandas;
 
     }
 

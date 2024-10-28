@@ -23,11 +23,16 @@ public class ColaboradoresSuscritos {
     @Column
     private boolean notificarDesperfecto = false;
 
+
     public ColaboradoresSuscritos(Long colaborador_id, Heladera heladera, int cantMinima, int viandasDisponibles, boolean notificarDesperfecto) {
         this.colaborador_id = colaborador_id;
         this.heladera = heladera;
         this.cantMinima = cantMinima;
         this.viandasDisponibles = viandasDisponibles;
         this.notificarDesperfecto = notificarDesperfecto;
+    }
+
+    public ColaboradoresSuscritos() {
+
     }
 }

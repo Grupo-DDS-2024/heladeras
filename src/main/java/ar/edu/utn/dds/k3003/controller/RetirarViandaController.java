@@ -3,6 +3,7 @@ package ar.edu.utn.dds.k3003.controller;
 import ar.edu.utn.dds.k3003.app.Fachada;
 import ar.edu.utn.dds.k3003.facades.FachadaHeladeras;
 import ar.edu.utn.dds.k3003.facades.dtos.RetiroDTO;
+import ar.edu.utn.dds.k3003.utils.MQUtils;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.Context;
 import io.micrometer.core.instrument.Counter;
@@ -17,10 +18,12 @@ public class RetirarViandaController {
     private Fachada fachadaHeladeras; // uso Fachada en vez de FachadaHeladeras para el getentitymanager..
     private StepMeterRegistry stepMeterRegistry;
     private Counter viandasRetiradas;
-    public RetirarViandaController(Fachada fachadaHeladeras, StepMeterRegistry stepMeterRegistry) {
+    private MQUtils mqUtilsNotificaciones;
+    public RetirarViandaController(Fachada fachadaHeladeras, StepMeterRegistry stepMeterRegistry, MQUtils mqUtilsNotificaciones) {
         this.fachadaHeladeras = fachadaHeladeras;
         this.stepMeterRegistry=stepMeterRegistry;
         this.viandasRetiradas=stepMeterRegistry.counter("ddsHeladeras.viandasRetiradas");
+        this.mqUtilsNotificaciones = mqUtilsNotificaciones;
     }
 
     public void retirarVianda(Context context)  throws BadRequestResponse {
