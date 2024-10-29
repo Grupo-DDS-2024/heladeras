@@ -8,6 +8,7 @@ import ar.edu.utn.dds.k3003.model.Heladera;
 import ar.edu.utn.dds.k3003.model.Temperatura;
 import ar.edu.utn.dds.k3003.repositories.*;
 import ar.edu.utn.dds.k3003.utils.MQUtils;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sun.net.httpserver.HttpsServer;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.NotFoundResponse;
@@ -32,6 +33,7 @@ public class Fachada implements FachadaHeladeras {
     private HeladeraMapper heladeraMapper;
     private TemperaturaMapper temperaturaMapper;
     private FachadaViandas fachadaViandas;
+    private MQUtils queue;
 
     public Fachada() {
         this.entityManagerFactory = Persistence.createEntityManagerFactory("fachada_heladeras");
@@ -42,16 +44,17 @@ public class Fachada implements FachadaHeladeras {
 
     }
 
-    public Fachada(HeladeraJPARepository heladeraRepository, HeladeraMapper heladeraMapper, TemperaturaMapper temperaturaMapper) {
+    public Fachada(HeladeraJPARepository heladeraRepository, HeladeraMapper heladeraMapper, TemperaturaMapper temperaturaMapper, MQUtils queue) {
         this.entityManagerFactory = Persistence.createEntityManagerFactory("fachada_heladeras");
         this.heladeraRepository = heladeraRepository;
         heladeraRepository.setEntityManager(entityManagerFactory.createEntityManager());
         this.heladeraMapper = heladeraMapper;
         this.temperaturaMapper = temperaturaMapper;
         this.suscripcionesRepository = new SuscripcionesRepository(entityManagerFactory);
+        this.queue = queue;
     }
 
-    public Fachada(HeladeraJPARepository heladeraRepository, HeladeraMapper heladeraMapper, TemperaturaMapper temperaturaMapper, EntityManagerFactory entityManagerFactory) {
+    public Fachada(HeladeraJPARepository heladeraRepository, HeladeraMapper heladeraMapper, TemperaturaMapper temperaturaMapper, EntityManagerFactory entityManagerFactory, MQUtils queue) {
         this.entityManagerFactory = entityManagerFactory;
         this.heladeraRepository = heladeraRepository;
         heladeraRepository.setEntityManagerFactory(entityManagerFactory);
@@ -59,6 +62,7 @@ public class Fachada implements FachadaHeladeras {
         this.heladeraMapper = heladeraMapper;
         this.temperaturaMapper = temperaturaMapper;
         this.suscripcionesRepository = new SuscripcionesRepository(entityManagerFactory);
+        this.queue = queue;
     }
 
 
@@ -80,12 +84,11 @@ public class Fachada implements FachadaHeladeras {
     @Override
     public void depositar(Integer heladeraId, String qrVianda) throws NoSuchElementException {
 
+
         EntityManager em = this.entityManagerFactory.createEntityManager();
         this.heladeraRepository.setEntityManager(em);
         em.getTransaction().begin();
-
         Heladera heladera = this.heladeraRepository.findById(heladeraId);
-
         ViandaDTO viandaDTO;
         try {
             viandaDTO = this.fachadaViandas.buscarXQR(qrVianda);
@@ -127,8 +130,13 @@ public class Fachada implements FachadaHeladeras {
         em.persist(heladera);
         ViandaDTO viandaDTO = this.fachadaViandas.buscarXQR(retiroDTO.getQrVianda());
         this.fachadaViandas.modificarEstado(viandaDTO.getCodigoQR(), EstadoViandaEnum.RETIRADA);
+        notificarQuedanNViandas(heladera.getId(), heladera.getCantidadViandas(), this.queue);
         em.getTransaction().commit();
         em.close();
+
+
+
+
     }
 
     @Override
@@ -178,26 +186,42 @@ public class Fachada implements FachadaHeladeras {
     }
 
     public void agregarSuscriptor(Long colaborador_id, Integer heladera_id, int cantMinima, int viandasDisponibles, boolean notificarDesperfecto){
-
+        EntityManager em = this.entityManagerFactory.createEntityManager();
+        this.heladeraRepository.setEntityManager(em);
+        em.getTransaction().begin();
         Heladera heladera = this.heladeraRepository.findById(heladera_id);
-        ColaboradoresSuscritos colaborador = new ColaboradoresSuscritos(colaborador_id,heladera,cantMinima,viandasDisponibles,notificarDesperfecto);
+        ColaboradoresSuscritos colaborador = new ColaboradoresSuscritos(colaborador_id,heladera.getId(),cantMinima,viandasDisponibles,notificarDesperfecto);
         heladera.getColaboradoresSuscritos().add(colaborador);
-        suscripcionesRepository.save(colaborador);
+        //suscripcionesRepository.save(colaborador);
+        em.merge(heladera);
+        em.getTransaction().commit();
+        em.close();
 
     }
 
 
     public void notificarQuedanNViandas(int heladera_id, int cantViandas, MQUtils queue){
+
         Heladera heladera = this.heladeraRepository.findById(heladera_id);
         List<ColaboradoresSuscritos> suscriptores = heladera.getColaboradoresSuscritos();
+        System.out.println("Suscriptores: " + suscriptores.size());
         suscriptores.forEach( s -> {
-            if(s.getCantMinima() <= cantViandas){
+            System.out.println("Afuera del if: " + s.getColaborador_id());
+            if(s.getCantMinima() >= cantViandas){
+                System.out.println("S.cantMinima: " + s.getCantMinima());
+                System.out.println("S.colaboradorId: " + s.getColaborador_id());
                 Map<String, Object> response = new HashMap<>();
-                response.put("colaborador_id:",s.getColaborador_id());
-                response.put("heladera_id:",heladera_id);
-                response.put("tipo:",0);
+                response.put("tipo", 0);
+                response.put("heladera_id",heladera_id);
+                response.put("colaborador_id",s.getColaborador_id());
+
                 try {
+                    //ObjectMapper objectMapper = new ObjectMapper();
+                    //String jsonMessage = objectMapper.writeValueAsString(response);
+                    //queue.publish(jsonMessage);
+                    System.out.println("RESPONSE: " + response.toString());
                     queue.publish(response.toString());
+
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }

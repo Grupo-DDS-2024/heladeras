@@ -100,7 +100,7 @@ public class WebApp {
 
 
         // Si veo que en ningún controller uso directamente los repo o mapper (el mapper da igual), saco el constructor con todos los parámetros y lo dejo como new Fachada();
-        Fachada fachadaHeladeras = new Fachada(heladeraJPARepository, heladeraMapper, temperaturaMapper, entityManagerFactory);
+        Fachada fachadaHeladeras = new Fachada(heladeraJPARepository, heladeraMapper, temperaturaMapper, entityManagerFactory, mqUtilsNotificaciones);
         var objectMapper = createObjectMapper();
         fachadaHeladeras.setViandasProxy(new ViandasProxy(objectMapper));
 

@@ -34,10 +34,10 @@ public class Heladera {
     @Getter
     private List<Temperatura> temperaturas;
 
-    @Transient
+    @OneToMany(cascade = {CascadeType.ALL}, fetch = FetchType.LAZY)
+    @JoinColumn(name = "heladeraId")
     @Getter
-    @Setter
-    private List<ColaboradoresSuscritos> colaboradoresSuscritos = new ArrayList<>();
+    private List<ColaboradoresSuscritos> colaboradoresSuscritos;
 
     @Column
     @Getter
@@ -53,6 +53,7 @@ public class Heladera {
         this.nombre = nombre;
         this.viandas = new ArrayList<>();
         this.temperaturas = new LinkedList<>();
+        this.colaboradoresSuscritos = new ArrayList<>();
 
     }
 
@@ -62,6 +63,7 @@ public class Heladera {
         this.viandas = new ArrayList<>();
         this.temperaturas = new LinkedList<>();
         this.cantidadDeViandas = cantidadDeViandas;
+        this.colaboradoresSuscritos = new ArrayList<>();
 
     }
 

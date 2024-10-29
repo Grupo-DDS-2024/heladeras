@@ -13,9 +13,8 @@ public class ColaboradoresSuscritos {
     private Long id;
     @Column(name = "id_colaborador")
     private Long colaborador_id;
-    @ManyToOne
-    @JoinColumn(name = "heladera_id")
-    private Heladera heladera;
+    @Column(name = "heladeraId",nullable = false)
+    private Integer heladeraId;
     @Column
     private int cantMinima = -1;
     @Column
@@ -24,9 +23,9 @@ public class ColaboradoresSuscritos {
     private boolean notificarDesperfecto = false;
 
 
-    public ColaboradoresSuscritos(Long colaborador_id, Heladera heladera, int cantMinima, int viandasDisponibles, boolean notificarDesperfecto) {
+    public ColaboradoresSuscritos(Long colaborador_id, Integer heladeraId, int cantMinima, int viandasDisponibles, boolean notificarDesperfecto) {
         this.colaborador_id = colaborador_id;
-        this.heladera = heladera;
+        this.heladeraId = heladeraId;
         this.cantMinima = cantMinima;
         this.viandasDisponibles = viandasDisponibles;
         this.notificarDesperfecto = notificarDesperfecto;
