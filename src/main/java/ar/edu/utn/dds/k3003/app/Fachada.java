@@ -104,9 +104,9 @@ public class Fachada implements FachadaHeladeras {
 
         this.fachadaViandas.modificarEstado(viandaDTO.getCodigoQR(), EstadoViandaEnum.DEPOSITADA);
         this.fachadaViandas.modificarHeladera(viandaDTO.getCodigoQR(),heladeraId);
-
         heladera.guardar(qrVianda);
         em.persist(heladera);
+        notificarFaltanNViandas(heladera.getId(), heladera.getCantidadDeViandas() - heladera.getCantidadViandas() , queue);
 
         //this.heladeraRepository.getEntityManager().getTransaction().commit();
         em.getTransaction().commit();
@@ -207,7 +207,7 @@ public class Fachada implements FachadaHeladeras {
         System.out.println("Suscriptores: " + suscriptores.size());
         suscriptores.forEach( s -> {
             System.out.println("Afuera del if: " + s.getColaborador_id());
-            if(s.getCantMinima() >= cantViandas){
+            if(s.getCantMinima() != -1 && s.getCantMinima() >= cantViandas){
                 System.out.println("S.cantMinima: " + s.getCantMinima());
                 System.out.println("S.colaboradorId: " + s.getColaborador_id());
                 Map<String, Object> response = new HashMap<>();
@@ -235,11 +235,11 @@ public class Fachada implements FachadaHeladeras {
         Heladera heladera = this.heladeraRepository.findById(heladera_id);
         List<ColaboradoresSuscritos> suscriptores = heladera.getColaboradoresSuscritos();
         suscriptores.forEach(s -> {
-            if(s.getViandasDisponibles() <= viandasFaltantes){
+            if(s.getViandasDisponibles() != -1 && s.getViandasDisponibles() >= viandasFaltantes){
                 Map<String, Object> response = new HashMap<>();
-                response.put("colaborador_id:",s.getColaborador_id());
-                response.put("heladera_id:",heladera_id);
-                response.put("tipo:",1);
+                response.put("colaborador_id",s.getColaborador_id());
+                response.put("heladera_id",heladera_id);
+                response.put("tipo",1);
                 try {
                     queue.publish(response.toString());
                 } catch (IOException e) {
