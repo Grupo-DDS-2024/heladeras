@@ -60,8 +60,6 @@ public class WebApp {
         String queueName = envMQ.get("QUEUE_NAME");
         Connection connection = factory.newConnection();
         Channel channel = connection.createChannel();
-        TemperaturasWorker worker = new TemperaturasWorker(channel, queueName, entityManagerFactory);
-        worker.init();
 
         MQUtils mqUtilsNotificaciones = new MQUtils(
 
@@ -73,7 +71,27 @@ public class WebApp {
         );
         mqUtilsNotificaciones.init();
 
+        Map<String, String> envMovimiento = System.getenv();
+        ConnectionFactory factoryMovimiento = new ConnectionFactory();
+        factoryMovimiento.setHost(envMovimiento.get("QUEUE_HOST"));
+        factoryMovimiento.setUsername(envMovimiento.get("QUEUE_USERNAME"));
+        factoryMovimiento.setPassword(envMovimiento.get("QUEUE_PASSWORD"));
+// En el plan más barato, el VHOST == USER
+        factoryMovimiento.setVirtualHost(envMovimiento.get("QUEUE_USERNAME"));
+        String colaMovimiento = envMovimiento.get("COLA_MOVIMIENTO");
+        Connection conexionMovimiento = factoryMovimiento.newConnection();
+        Channel cabalMovimiento = connection.createChannel();
 
+        Map<String, String> envFalla = System.getenv();
+        ConnectionFactory factoryFalla = new ConnectionFactory();
+        factoryFalla.setHost(envFalla.get("QUEUE_HOST"));
+        factoryFalla.setUsername(envFalla.get("QUEUE_USERNAME"));
+        factoryFalla.setPassword(envFalla.get("QUEUE_PASSWORD"));
+// En el plan más barato, el VHOST == USER
+        factoryFalla.setVirtualHost(envFalla.get("QUEUE_USERNAME"));
+        String colaFalla = envFalla.get("COLA_FALLACONEXION");
+        Connection conexionFalla = factoryFalla.newConnection();
+        Channel canalFalla = conexionFalla.createChannel();
 
 
 
@@ -96,18 +114,23 @@ public class WebApp {
         }).start(port);
         app.get("/", ctx -> ctx.result("Hola Mundo"));
 
-        // Start Cosas.
+
 
 
         // Si veo que en ningún controller uso directamente los repo o mapper (el mapper da igual), saco el constructor con todos los parámetros y lo dejo como new Fachada();
         Fachada fachadaHeladeras = new Fachada(heladeraJPARepository, heladeraMapper, temperaturaMapper, entityManagerFactory, mqUtilsNotificaciones);
+        TemperaturasWorker workerTemperatura = new TemperaturasWorker(channel, queueName, fachadaHeladeras);
+        MovimientoWorker workerMovimiento = new MovimientoWorker(cabalMovimiento,colaMovimiento,fachadaHeladeras);
+        FallaConexionWorker workerFalla = new FallaConexionWorker(canalFalla,colaFalla,fachadaHeladeras);
+        workerTemperatura.init();
+        workerMovimiento.init();
+        workerFalla.init();
         var objectMapper = createObjectMapper();
         fachadaHeladeras.setViandasProxy(new ViandasProxy(objectMapper));
 
 
-        // End Cosas.
 
-        // Controllers.
+        // Controllers
         var agregarHeladeraController = new AgregarHeladeraController(fachadaHeladeras, registro);
         var obtenerHeladeraController = new ObtenerHeladeraController(fachadaHeladeras, entityManagerFactory, heladeraJPARepository);
         var depositarViandaController = new DepositarViandaController(fachadaHeladeras, registro);
@@ -116,6 +139,8 @@ public class WebApp {
         var registrarTemperaturaController = new RegistrarTemperaturaController(fachadaHeladeras, mqutils);
         var obtenerTemperaturasController = new ObtenerTemperaturasController(fachadaHeladeras);
         var agregarSuscriptorController = new AgregarSuscriptorController(fachadaHeladeras);
+        var fallaTecnicaController = new FallaTecnicaController(fachadaHeladeras);
+        var arreglarHeladeraController = new ArreglarHeladeraController(fachadaHeladeras);
 
         app.post("/heladeras", agregarHeladeraController::agregar);
         app.get("/heladeras/{id}", obtenerHeladeraController::obtenerHeladera);
@@ -126,6 +151,8 @@ public class WebApp {
 
         //agregarSuscriptor(Long colaborador_id, Integer heladera_id, int cantMinima, int viandasDisponibles, boolean notificarDesperfecto){
         app.post("/heladeras/suscripciones", agregarSuscriptorController::agregarSuscriptor);
+        app.post("/desperfecto/{id}", fallaTecnicaController::desperfecto);
+        app.post("/arreglar/{id}", arreglarHeladeraController::arreglarHeladera);
 
         app.get("/listado", listaHeladeraController::listarHeladeras); // de test nomás. dsp borrarlo
 

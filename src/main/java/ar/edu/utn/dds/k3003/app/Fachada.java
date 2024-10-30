@@ -148,12 +148,19 @@ public class Fachada implements FachadaHeladeras {
         this.heladeraRepository.setEntityManager(em);
         em.getTransaction().begin();
         Heladera heladera = this.heladeraRepository.findById(temperaturaDTO.getHeladeraId());
-
+        if(temperatura.getTemperatura() > 10){
+            System.out.println("falla temperatura");
+            heladera.marcarInactiva();
+            // Reportar a colaboradores
+            this.notificarDesperfecto(heladera.getId(), this.queue);
+        }
         heladera.setTemperatura(temperatura);
         this.heladeraRepository.save(heladera);
 
         em.getTransaction().commit();
         em.close();
+
+
     }
 
     @Override
@@ -249,6 +256,24 @@ public class Fachada implements FachadaHeladeras {
         });
     }
 
+    public void notificarDesperfecto(int heladera_id, MQUtils queue){
+        Heladera heladera = this.heladeraRepository.findById(heladera_id);
+        List<ColaboradoresSuscritos> suscriptores = heladera.getColaboradoresSuscritos();
+        suscriptores.forEach(s -> {
+            if(s.isNotificarDesperfecto()){
+                Map<String, Object> response = new HashMap<>();
+                response.put("colaborador_id",s.getColaborador_id());
+                response.put("heladera_id",heladera_id);
+                response.put("tipo",2);
+                try {
+                    queue.publish(response.toString());
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        });
+    }
+
 
     
 
@@ -258,5 +283,58 @@ public class Fachada implements FachadaHeladeras {
 
     public EntityManager getEntityManager() {
         return this.heladeraRepository.getEntityManager();
+    }
+
+    public void fraude(int heladeraId) {
+        EntityManager em = this.entityManagerFactory.createEntityManager();
+        this.heladeraRepository.setEntityManager(em);
+        em.getTransaction().begin();
+        Heladera heladera = heladeraRepository.findById(heladeraId);
+        heladera.marcarInactiva();
+        // Reportar incidente a colaboradores
+        this.notificarDesperfecto(heladera.getId(), this.queue);
+        heladeraRepository.save(heladera);
+        em.getTransaction().commit();
+        em.close();
+    }
+
+    public void marcarInactiva(int heladeraId) {
+        EntityManager em = this.entityManagerFactory.createEntityManager();
+        this.heladeraRepository.setEntityManager(em);
+        em.getTransaction().begin();
+        Heladera heladera = heladeraRepository.findById(heladeraId);
+        heladera.marcarInactiva();
+        this.notificarDesperfecto(heladera.getId(), this.queue);
+        heladeraRepository.save(heladera);
+        em.getTransaction().commit();
+        em.close();
+    }
+
+    public void reportarIncidente(int heladeraId, int tipo) {
+        Map<String, Object> response = new HashMap<>();
+        response.put("tipo", tipo);
+        response.put("heladera_id",heladeraId);
+
+        try {
+            //ObjectMapper objectMapper = new ObjectMapper();
+            //String jsonMessage = objectMapper.writeValueAsString(response);
+            //queue.publish(jsonMessage);
+            System.out.println("RESPONSE: " + response.toString());
+            queue.publish(response.toString());
+
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public void arreglarHeladera(int heladeraId) {
+        EntityManager em = this.entityManagerFactory.createEntityManager();
+        this.heladeraRepository.setEntityManager(em);
+        em.getTransaction().begin();
+        Heladera heladera = heladeraRepository.findById(heladeraId);
+        heladera.marcarActiva();
+        heladeraRepository.save(heladera);
+        em.getTransaction().commit();
+        em.close();
     }
 }

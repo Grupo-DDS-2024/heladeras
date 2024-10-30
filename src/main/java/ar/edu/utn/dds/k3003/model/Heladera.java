@@ -43,6 +43,10 @@ public class Heladera {
     @Getter
     private Integer cantidadDeViandas;
 
+    @Enumerated(EnumType.STRING)
+    @Getter
+    private EstadoHeladera estadoHeladera;
+
     public Heladera() {
         super();
     }
@@ -54,6 +58,7 @@ public class Heladera {
         this.viandas = new ArrayList<>();
         this.temperaturas = new LinkedList<>();
         this.colaboradoresSuscritos = new ArrayList<>();
+        this.estadoHeladera = EstadoHeladera.ACTIVA;
 
     }
 
@@ -64,6 +69,7 @@ public class Heladera {
         this.temperaturas = new LinkedList<>();
         this.cantidadDeViandas = cantidadDeViandas;
         this.colaboradoresSuscritos = new ArrayList<>();
+        this.estadoHeladera = EstadoHeladera.ACTIVA;
 
     }
 
@@ -86,6 +92,14 @@ public class Heladera {
     public void setTemperatura(Temperatura temperatura) {
         //this.temperaturas.addFirst(temperatura);
         this.temperaturas.add(0, temperatura);
+    }
+
+    public void marcarInactiva(){
+        this.estadoHeladera = EstadoHeladera.INACTIVA;
+    }
+
+    public void marcarActiva() {
+        this.estadoHeladera = EstadoHeladera.ACTIVA;
     }
 
     public LocalDateTime getFechaMedicion() {

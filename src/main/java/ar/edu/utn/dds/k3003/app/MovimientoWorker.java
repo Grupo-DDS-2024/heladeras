@@ -14,12 +14,12 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
-public class TemperaturasWorker extends DefaultConsumer {
+public class MovimientoWorker extends DefaultConsumer {
 
     private String queueName;
     private Fachada fachadaHeladeras;
 
-    protected TemperaturasWorker(Channel channel, String queueName, Fachada fachadaHeladeras) {
+    protected MovimientoWorker(Channel channel, String queueName, Fachada fachadaHeladeras) {
         super(channel);
         this.queueName = queueName;
         this.fachadaHeladeras = fachadaHeladeras;
@@ -27,16 +27,16 @@ public class TemperaturasWorker extends DefaultConsumer {
 
     public static void main(String[] args) throws Exception {
 // Establecer la conexión con CloudAMQP
-        Map<String, String> envMQ = System.getenv();
+        Map<String, String> envMovimiento = System.getenv();
         ConnectionFactory factory = new ConnectionFactory();
-        factory.setHost(envMQ.get("QUEUE_HOST"));
-        factory.setUsername(envMQ.get("QUEUE_USERNAME"));
-        factory.setPassword(envMQ.get("QUEUE_PASSWORD"));
+        factory.setHost(envMovimiento.get("QUEUE_HOST"));
+        factory.setUsername(envMovimiento.get("QUEUE_USERNAME"));
+        factory.setPassword(envMovimiento.get("QUEUE_PASSWORD"));
 // En el plan más barato, el VHOST == USER
-        factory.setVirtualHost(envMQ.get("QUEUE_USERNAME"));
-        String queueName = envMQ.get("QUEUE_NAME");
+        factory.setVirtualHost(envMovimiento.get("QUEUE_USERNAME"));
+        String colaMovimiento = envMovimiento.get("COLA_MOVIMIENTO");
         Connection connection = factory.newConnection();
-        Channel channel = connection.createChannel();
+        Channel canalMovimiento = connection.createChannel();
 
         //TemperaturasWorker worker = new TemperaturasWorker(channel, queueName);
         //worker.init();
@@ -52,7 +52,7 @@ public class TemperaturasWorker extends DefaultConsumer {
     @Override
     public void handleDelivery(String consumerTag, Envelope envelope,
                                AMQP.BasicProperties properties, byte[] body) throws IOException {
-    // Confirmar la recepción del mensaje a la mensajeria
+        // Confirmar la recepción del mensaje a la mensajeria
         this.getChannel().basicAck(envelope.getDeliveryTag(), false);
         String mensaje = new String(body, "UTF-8");
         mensaje = mensaje.substring(1,mensaje.length() - 1);
@@ -66,11 +66,9 @@ public class TemperaturasWorker extends DefaultConsumer {
             }
         }
 
-        Integer temp = Integer.parseInt(valores.get("temperatura"));
         int heladeraId = Integer.parseInt(valores.get("heladera_id"));
+        fachadaHeladeras.fraude(heladeraId);
         LocalDateTime fecha = LocalDateTime.now();
-        TemperaturaDTO temperaturaDTO = new TemperaturaDTO(temp,heladeraId,fecha);
-        fachadaHeladeras.temperatura(temperaturaDTO);
-        }
+    }
 }
 
