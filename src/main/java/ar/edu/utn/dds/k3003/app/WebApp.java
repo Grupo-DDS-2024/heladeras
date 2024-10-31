@@ -18,6 +18,7 @@ import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 import io.javalin.Javalin;
 import io.javalin.micrometer.MicrometerPlugin;
+import io.micrometer.core.instrument.step.StepMeterRegistry;
 
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.Persistence;
@@ -71,6 +72,16 @@ public class WebApp {
         );
         mqUtilsNotificaciones.init();
 
+        MQUtils mqUtilsIncidentes = new MQUtils(
+
+                env.get("NOTIFICACIONES_HOST"),
+                env.get("NOTIFICACIONES_USERNAME"),
+                env.get("NOTIFICACIONES_PASSWORD"),
+                env.get("NOTIFICACIONES_USERNAME"),
+                env.get("INCIDENTES_NAME")
+        );
+        mqUtilsIncidentes.init();
+
         Map<String, String> envMovimiento = System.getenv();
         ConnectionFactory factoryMovimiento = new ConnectionFactory();
         factoryMovimiento.setHost(envMovimiento.get("QUEUE_HOST"));
@@ -99,7 +110,7 @@ public class WebApp {
 
 
 
-        var DDUtils = new DataDogsUtils("Heladeras");
+        var DDUtils = new DataDogsUtils("app");
         var registro = DDUtils.getRegistro();
 
         // Metricas
@@ -118,7 +129,7 @@ public class WebApp {
 
 
         // Si veo que en ningún controller uso directamente los repo o mapper (el mapper da igual), saco el constructor con todos los parámetros y lo dejo como new Fachada();
-        Fachada fachadaHeladeras = new Fachada(heladeraJPARepository, heladeraMapper, temperaturaMapper, entityManagerFactory, mqUtilsNotificaciones);
+        Fachada fachadaHeladeras = new Fachada(heladeraJPARepository, heladeraMapper, temperaturaMapper, entityManagerFactory, mqUtilsNotificaciones,mqUtilsIncidentes, registro);
         TemperaturasWorker workerTemperatura = new TemperaturasWorker(channel, queueName, fachadaHeladeras);
         MovimientoWorker workerMovimiento = new MovimientoWorker(cabalMovimiento,colaMovimiento,fachadaHeladeras);
         FallaConexionWorker workerFalla = new FallaConexionWorker(canalFalla,colaFalla,fachadaHeladeras);

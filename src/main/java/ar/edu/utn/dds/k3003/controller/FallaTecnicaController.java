@@ -17,7 +17,9 @@ public class FallaTecnicaController {
 
     public void desperfecto(Context context) {
         try {
-            this.fachadaHeladera.marcarInactiva(Integer.parseInt(context.pathParam("id")));
+            int heladeraId = Integer.parseInt(context.pathParam("id"));
+            this.fachadaHeladera.marcarInactiva(heladeraId);
+            fachadaHeladera.reportarIncidente(heladeraId,0);
         } catch (Exception e) {
             throw new BadRequestResponse("Error de solicitud.");
         }

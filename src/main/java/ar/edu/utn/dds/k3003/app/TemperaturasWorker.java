@@ -65,7 +65,7 @@ public class TemperaturasWorker extends DefaultConsumer {
 
             }
         }
-
+        System.out.println("VALORES: " + valores);
         Integer temp = Integer.parseInt(valores.get("temperatura"));
         int heladeraId = Integer.parseInt(valores.get("heladera_id"));
         LocalDateTime fecha = LocalDateTime.now();

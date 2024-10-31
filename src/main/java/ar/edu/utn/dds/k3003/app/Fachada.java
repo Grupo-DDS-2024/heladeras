@@ -8,17 +8,15 @@ import ar.edu.utn.dds.k3003.model.Heladera;
 import ar.edu.utn.dds.k3003.model.Temperatura;
 import ar.edu.utn.dds.k3003.repositories.*;
 import ar.edu.utn.dds.k3003.utils.MQUtils;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.sun.net.httpserver.HttpsServer;
 import io.javalin.http.BadRequestResponse;
 import io.javalin.http.NotFoundResponse;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.step.StepMeterRegistry;
 import lombok.Getter;
-import org.hibernate.annotations.NotFound;
 
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.Persistence;
-import javax.transaction.Transactional;
 import java.io.IOException;
 import java.util.*;
 
@@ -33,7 +31,9 @@ public class Fachada implements FachadaHeladeras {
     private HeladeraMapper heladeraMapper;
     private TemperaturaMapper temperaturaMapper;
     private FachadaViandas fachadaViandas;
-    private MQUtils queue;
+    private MQUtils cola_notificaciones;
+    private MQUtils cola_incidentes;
+    private StepMeterRegistry registro;
 
     public Fachada() {
         this.entityManagerFactory = Persistence.createEntityManagerFactory("fachada_heladeras");
@@ -44,17 +44,22 @@ public class Fachada implements FachadaHeladeras {
 
     }
 
-    public Fachada(HeladeraJPARepository heladeraRepository, HeladeraMapper heladeraMapper, TemperaturaMapper temperaturaMapper, MQUtils queue) {
+    public Fachada(HeladeraJPARepository heladeraRepository, HeladeraMapper heladeraMapper,
+                   TemperaturaMapper temperaturaMapper, MQUtils cola_notificaciones, MQUtils cola_incidentes,StepMeterRegistry registro) {
         this.entityManagerFactory = Persistence.createEntityManagerFactory("fachada_heladeras");
         this.heladeraRepository = heladeraRepository;
         heladeraRepository.setEntityManager(entityManagerFactory.createEntityManager());
         this.heladeraMapper = heladeraMapper;
         this.temperaturaMapper = temperaturaMapper;
         this.suscripcionesRepository = new SuscripcionesRepository(entityManagerFactory);
-        this.queue = queue;
+        this.cola_notificaciones = cola_notificaciones;
+        this.cola_incidentes = cola_incidentes;
+        this.registro=registro;
     }
 
-    public Fachada(HeladeraJPARepository heladeraRepository, HeladeraMapper heladeraMapper, TemperaturaMapper temperaturaMapper, EntityManagerFactory entityManagerFactory, MQUtils queue) {
+    public Fachada(HeladeraJPARepository heladeraRepository, HeladeraMapper heladeraMapper,
+                   TemperaturaMapper temperaturaMapper, EntityManagerFactory entityManagerFactory,
+                   MQUtils cola_notificaciones, MQUtils cola_incidentes, StepMeterRegistry registro) {
         this.entityManagerFactory = entityManagerFactory;
         this.heladeraRepository = heladeraRepository;
         heladeraRepository.setEntityManagerFactory(entityManagerFactory);
@@ -62,7 +67,9 @@ public class Fachada implements FachadaHeladeras {
         this.heladeraMapper = heladeraMapper;
         this.temperaturaMapper = temperaturaMapper;
         this.suscripcionesRepository = new SuscripcionesRepository(entityManagerFactory);
-        this.queue = queue;
+        this.cola_notificaciones = cola_notificaciones;
+        this.cola_incidentes = cola_incidentes;
+        this.registro=registro;
     }
 
 
@@ -93,6 +100,7 @@ public class Fachada implements FachadaHeladeras {
         try {
             viandaDTO = this.fachadaViandas.buscarXQR(qrVianda);
         } catch (NotFoundResponse e) {
+            this.reportarError(e);
             throw new NoSuchElementException();
         }
 
@@ -106,7 +114,7 @@ public class Fachada implements FachadaHeladeras {
         this.fachadaViandas.modificarHeladera(viandaDTO.getCodigoQR(),heladeraId);
         heladera.guardar(qrVianda);
         em.persist(heladera);
-        notificarFaltanNViandas(heladera.getId(), heladera.getCantidadDeViandas() - heladera.getCantidadViandas() , queue);
+        notificarFaltanNViandas(heladera.getId(), heladera.getCantidadDeViandas() - heladera.getCantidadViandas() , cola_notificaciones);
 
         //this.heladeraRepository.getEntityManager().getTransaction().commit();
         em.getTransaction().commit();
@@ -130,7 +138,7 @@ public class Fachada implements FachadaHeladeras {
         em.persist(heladera);
         ViandaDTO viandaDTO = this.fachadaViandas.buscarXQR(retiroDTO.getQrVianda());
         this.fachadaViandas.modificarEstado(viandaDTO.getCodigoQR(), EstadoViandaEnum.RETIRADA);
-        notificarQuedanNViandas(heladera.getId(), heladera.getCantidadViandas(), this.queue);
+        notificarQuedanNViandas(heladera.getId(), heladera.getCantidadViandas(), this.cola_notificaciones);
         em.getTransaction().commit();
         em.close();
 
@@ -151,8 +159,8 @@ public class Fachada implements FachadaHeladeras {
         if(temperatura.getTemperatura() > 10){
             System.out.println("falla temperatura");
             heladera.marcarInactiva();
-            // Reportar a colaboradores
-            this.notificarDesperfecto(heladera.getId(), this.queue);
+            reportarIncidente(heladera.getId(),1);
+            this.notificarDesperfecto(heladera.getId(), this.cola_notificaciones);
         }
         heladera.setTemperatura(temperatura);
         this.heladeraRepository.save(heladera);
@@ -230,6 +238,7 @@ public class Fachada implements FachadaHeladeras {
                     queue.publish(response.toString());
 
                 } catch (IOException e) {
+                    this.reportarError(e);
                     throw new RuntimeException(e);
                 }
             }
@@ -250,6 +259,7 @@ public class Fachada implements FachadaHeladeras {
                 try {
                     queue.publish(response.toString());
                 } catch (IOException e) {
+                    this.reportarError(e);
                     throw new RuntimeException(e);
                 }
             }
@@ -268,6 +278,7 @@ public class Fachada implements FachadaHeladeras {
                 try {
                     queue.publish(response.toString());
                 } catch (IOException e) {
+                    this.reportarError(e);
                     throw new RuntimeException(e);
                 }
             }
@@ -291,8 +302,8 @@ public class Fachada implements FachadaHeladeras {
         em.getTransaction().begin();
         Heladera heladera = heladeraRepository.findById(heladeraId);
         heladera.marcarInactiva();
-        // Reportar incidente a colaboradores
-        this.notificarDesperfecto(heladera.getId(), this.queue);
+        reportarIncidente(heladera.getId(),1);
+        this.notificarDesperfecto(heladera.getId(), this.cola_notificaciones);
         heladeraRepository.save(heladera);
         em.getTransaction().commit();
         em.close();
@@ -304,7 +315,7 @@ public class Fachada implements FachadaHeladeras {
         em.getTransaction().begin();
         Heladera heladera = heladeraRepository.findById(heladeraId);
         heladera.marcarInactiva();
-        this.notificarDesperfecto(heladera.getId(), this.queue);
+        this.notificarDesperfecto(heladera.getId(), this.cola_notificaciones);
         heladeraRepository.save(heladera);
         em.getTransaction().commit();
         em.close();
@@ -316,14 +327,13 @@ public class Fachada implements FachadaHeladeras {
         response.put("heladera_id",heladeraId);
 
         try {
-            //ObjectMapper objectMapper = new ObjectMapper();
-            //String jsonMessage = objectMapper.writeValueAsString(response);
-            //queue.publish(jsonMessage);
             System.out.println("RESPONSE: " + response.toString());
-            queue.publish(response.toString());
+            this.cola_incidentes.publish(response.toString());
 
         } catch (IOException e) {
+            this.reportarError(e);
             throw new RuntimeException(e);
+
         }
     }
 
@@ -337,4 +347,18 @@ public class Fachada implements FachadaHeladeras {
         em.getTransaction().commit();
         em.close();
     }
+    public void reportarError(Exception e){
+        Counter errorCounter = registro.counter("ddsHeladeras.errores","tipo_de_error",e.getClass().getSimpleName());
+        errorCounter.increment();
+    }
+
+//    public Heladera buscarPorId(int heladeraId) {
+//        Heladera heladera = null;
+//        try {
+//            heladera = heladeraRepository.findById(heladeraId);
+//        } catch (Exception e) {
+//            reportarError(e);
+//        }
+//        return heladera;
+//    }
 }
