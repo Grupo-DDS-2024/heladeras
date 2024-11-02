@@ -65,7 +65,7 @@ public class MovimientoWorker extends DefaultConsumer {
 
             }
         }
-
+        System.out.println("VALORES: " + valores);
         int heladeraId = Integer.parseInt(valores.get("heladera_id"));
         fachadaHeladeras.fraude(heladeraId);
         LocalDateTime fecha = LocalDateTime.now();
