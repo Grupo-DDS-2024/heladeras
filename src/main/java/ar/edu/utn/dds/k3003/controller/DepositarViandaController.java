@@ -32,7 +32,7 @@ public class DepositarViandaController {
             viandasDepositadas.increment();
             Map<String, Object> response = new HashMap<>();
             response.put("Mensaje", "Vianda depositada correctamente");
-            response.put("Vianda", viandaDTO);
+            response.put("ViandaQR", viandaDTO.getCodigoQR());
             response.put("Heladera", viandaDTO.getHeladeraId());
 
             context.status(200).json(response);
