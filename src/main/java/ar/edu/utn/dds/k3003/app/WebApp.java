@@ -9,6 +9,7 @@ import ar.edu.utn.dds.k3003.repositories.HeladeraRepository;
 import ar.edu.utn.dds.k3003.repositories.TemperaturaMapper;
 import ar.edu.utn.dds.k3003.utils.DataDogsUtils;
 import ar.edu.utn.dds.k3003.utils.MQUtils;
+import ar.edu.utn.dds.k3003.utils.MonitorTemperatura;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -138,6 +139,22 @@ public class WebApp {
         workerFalla.init();
         var objectMapper = createObjectMapper();
         fachadaHeladeras.setViandasProxy(new ViandasProxy(objectMapper));
+
+        MonitorTemperatura monitor = new MonitorTemperatura(entityManagerFactory,fachadaHeladeras);
+        Thread hiloMonitor = new Thread(monitor);
+        app.events(event ->{
+            event.serverStarting(()->{
+                hiloMonitor.start();
+            });
+            event.serverStopping(()->{
+                monitor.stop();
+                try {
+                    hiloMonitor.join();
+                }catch (InterruptedException e){
+                    e.printStackTrace();
+                }
+            });
+        });
 
 
 
