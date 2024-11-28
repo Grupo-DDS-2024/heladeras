@@ -16,10 +16,14 @@ public class MonitorTemperatura implements  Runnable{
     private Fachada fachada;
     private boolean running;
 
+    private int tiempo = Integer.parseInt(System.getenv().getOrDefault("tiempo", "1"));
+    private int tiempoHilo = Integer.parseInt(System.getenv().getOrDefault("tiempo_hilo", "86400000"));
+
     public MonitorTemperatura(EntityManagerFactory entityManagerFactory,Fachada fachada) {
         this.entityManagerFactory = entityManagerFactory;
         this.fachada=fachada;
         this.running=true;
+
 
     }
 
@@ -45,7 +49,7 @@ public class MonitorTemperatura implements  Runnable{
                         Integer heladeraId = (Integer) resultado[0];
                         LocalDateTime ultimaMedicion = (LocalDateTime) resultado[1];
 
-                        if(ChronoUnit.SECONDS.between(ultimaMedicion,tiempoActual) > 5){
+                        if(ChronoUnit.MINUTES.between(ultimaMedicion,tiempoActual) > tiempo){
                             fachada.fraude(heladeraId);
                             System.out.println("Hubo falla de conexión");
                         }
@@ -63,7 +67,7 @@ public class MonitorTemperatura implements  Runnable{
                     }
                 }
 
-                Thread.sleep(50000);
+                Thread.sleep(60000);
             }
         }catch (Exception e){
             e.printStackTrace();
