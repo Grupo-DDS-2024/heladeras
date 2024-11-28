@@ -120,11 +120,7 @@ public class WebApp {
         // Config
         final var micrometerPlugin = new MicrometerPlugin(config -> config.registry = registro);
 
-        Integer port = Integer.parseInt(System.getProperty("PORT", "8080"));
-        Javalin app = Javalin.create(config -> {
-            config.registerPlugin(micrometerPlugin);
-        }).start(port);
-        app.get("/", ctx -> ctx.result("Hola Mundo"));
+
 
 
 
@@ -139,11 +135,16 @@ public class WebApp {
         workerFalla.init();
         var objectMapper = createObjectMapper();
         fachadaHeladeras.setViandasProxy(new ViandasProxy(objectMapper));
-
         MonitorTemperatura monitor = new MonitorTemperatura(entityManagerFactory,fachadaHeladeras);
         Thread hiloMonitor = new Thread(monitor);
+        System.out.println("Estado del hilo: "+hiloMonitor.getState());
+        Integer port = Integer.parseInt(System.getProperty("PORT", "8080"));
+        Javalin app = Javalin.create(config -> {
+            config.registerPlugin(micrometerPlugin);
+        });
         app.events(event ->{
-            event.serverStarting(()->{
+            event.serverStarted(()->{
+                System.out.println("Hilo iniciado");
                 hiloMonitor.start();
             });
             event.serverStopping(()->{
@@ -155,6 +156,10 @@ public class WebApp {
                 }
             });
         });
+        app.start();
+        app.get("/", ctx -> ctx.result("Hola Mundo"));
+
+
 
 
 
